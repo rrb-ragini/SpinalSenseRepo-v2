@@ -13,6 +13,17 @@ export default function UploadPanel({ onFiles, files, onAnalysis }) {
       const fd = new FormData();
       files.forEach((f) => fd.append("xray", f));
 
+      const fd = new FormData();
+      fd.append("file", file);
+      
+      const res = await fetch("/api/vision", {
+        method: "POST",
+        body: fd,
+      });
+      
+      const data = await res.json();
+
+
       const res = await fetch("/api/infer", { method: "POST", body: fd });
       const json = await res.json();
       onAnalysis(json);
