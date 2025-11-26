@@ -1,49 +1,59 @@
 "use client";
 import ChatMessage from "./ChatMessage";
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export default function ChatPanel({ analysis }) {
-  const [messages, setMessages] = useState(() => [
-    { role: "assistant", content: `Hi! Upload an X-ray to get started.` },
+  const [messages, setMessages] = useState([
+    { role: "assistant", content: "Hello! Upload an X-ray to begin." }
   ]);
+
   const [text, setText] = useState("");
-  const boxRef = useRef();
+  const ref = useRef();
 
   useEffect(() => {
     if (analysis) {
-      // Push analysis to chat
-      setMessages((m) => [...m, { role: "assistant", content: `Analysis result: Cobb angle ${analysis.cobb_angle ?? "N/A"}°` }]);
-      // optionally add overlay link
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", content: `Cobb angle detected: ${analysis.cobb_angle}°\n${analysis.explanation ?? ""}` }
+      ]);
     }
   }, [analysis]);
 
   const send = async () => {
     if (!text.trim()) return;
-    const msg = { role: "user", content: text };
-    setMessages((m) => [...m, msg]);
+
+    const userMsg = { role: "user", content: text };
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
     setText("");
 
-    // demo bot reply
-    setTimeout(() => {
-      setMessages((m) => [...m, { role: "assistant", content: "Thanks — here are recommended exercises: core strengthening, hamstring stretches, and postural training." }]);
-      boxRef.current?.scrollTo({ top: boxRef.current.scrollHeight, behavior: "smooth" });
-    }, 700);
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ messages: newMessages })
+    });
+
+    const json = await res.json();
+    const assistant = json.assistant;
+
+    setMessages((m) => [...m, assistant]);
+    setTimeout(() => ref.current?.scrollTo({ top: ref.current.scrollHeight }), 200);
   };
 
   return (
-    <div className="card p-4 mt-4 chat-window">
-      <div ref={boxRef} className="chat-history">
+    <div className="chat-window card p-4 mt-4">
+      <div ref={ref} className="chat-history">
         {messages.map((m, i) => <ChatMessage key={i} msg={m} />)}
       </div>
 
       <div className="chat-input">
-        <input
-          value={text}
+        <input 
+          value={text} 
           onChange={(e) => setText(e.target.value)}
-          placeholder="Ask about exercises, lifestyle or your result..."
-          className="flex-1 p-3 rounded-md border bg-white"
+          className="flex-1 border p-3 rounded-md"
+          placeholder="Ask about exercises or your spine health..."
         />
-        <button onClick={send} className="px-4 py-2 rounded bg-white text-primary-500 border">Send</button>
+        <button className="px-4 py-2 border rounded-md" onClick={send}>Send</button>
       </div>
     </div>
   );
