@@ -1,70 +1,12 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Theme variables */
 :root{
-  --primary: #0070f3;
-  --accent: #6b46c1;
   --bg: #f7fafc;
   --card: #ffffff;
-  --muted: #6b7280;
 }
 
-/* Layout container */
-.main-container{
-  max-width: 1200px;
-  margin: 28px auto;
-  padding: 0 20px;
-}
-
-/* Cards */
-.card {
-  background: var(--card);
-  border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(15,23,42,0.06);
-  border: 1px solid rgba(15,23,42,0.04);
-}
-
-/* Left/right split */
-.grid-2 {
-  display: grid;
-  grid-template-columns: 420px 1fr;
-  gap: 22px;
-  align-items: start;
-}
-
-/* Upload dropzone */
-.dropzone {
-  border: 2px dashed rgba(99,102,241,0.4);
-  border-radius: 10px;
-  padding: 28px;
-  text-align: center;
-  background: linear-gradient(180deg, rgba(99,102,241,0.03), rgba(139,92,246,0.01));
-}
-
-/* Chat area */
-.chat-window {
-  height: 620px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* Chat messages scroll */
-.chat-history {
-  flex: 1;
-  overflow-y: auto;
-  padding: 18px;
-  border-radius: 8px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(250,250,250,0.9));
-  border: 1px solid rgba(0,0,0,0.03);
-}
-
-/* Input area */
-.chat-input {
-  display:flex;
-  gap:10px;
-  margin-top: 8px;
+body {
+  background: var(--bg);
 }
