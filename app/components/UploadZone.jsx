@@ -1,31 +1,27 @@
 "use client";
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 export default function UploadZone({ onFiles }) {
-  const ref = useRef();
   const [hover, setHover] = useState(false);
 
-  const handleFiles = (list) => {
-    const arr = Array.from(list).filter((f) => f.type.startsWith("image/") || f.name.match(/\.(dcm|dicom)$/i));
-    if (arr.length) onFiles(arr);
+  const handle = (files) => {
+    const arr = Array.from(files);
+    onFiles(arr);
   };
 
   return (
-    <div
-      ref={ref}
+    <div 
+      className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer 
+        ${hover ? "border-primary bg-blue-50" : "border-slate-300"}`}
       onDragOver={(e) => { e.preventDefault(); setHover(true); }}
       onDragLeave={() => setHover(false)}
-      onDrop={(e) => { e.preventDefault(); setHover(false); handleFiles(e.dataTransfer.files); }}
-      onClick={() => ref.current.querySelector("input[type=file]").click()}
-      className={`dropzone card ${hover ? "ring-2 ring-primary-300" : ""}`}
-      style={{ cursor: "pointer" }}
+      onDrop={(e) => { e.preventDefault(); setHover(false); handle(e.dataTransfer.files); }}
+      onClick={() => document.getElementById("xrayInput").click()}
     >
-      <input className="hidden" type="file" multiple accept="image/*,.dcm" onChange={(e) => handleFiles(e.target.files)} />
-      <div style={{ padding: "28px 8px" }}>
-        <div style={{ fontSize: 24 }}>📷</div>
-        <div className="text-lg font-medium mt-2">Click to upload X-ray</div>
-        <div className="text-sm text-slate-500 mt-1">PNG, JPG, or DICOM</div>
-      </div>
+      <input id="xrayInput" hidden type="file" multiple accept="image/*" 
+        onChange={(e) => handle(e.target.files)} />
+      <div className="text-lg font-medium">Drop or Click to Upload X-ray</div>
+      <div className="text-sm text-slate-500">PNG, JPG, DICOM-exported images</div>
     </div>
   );
 }
