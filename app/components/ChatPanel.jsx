@@ -1,6 +1,6 @@
 "use client";
 import ChatMessage from "./ChatMessage";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export default function ChatPanel({ analysis }) {
   const [messages, setMessages] = useState([
@@ -8,13 +8,16 @@ export default function ChatPanel({ analysis }) {
   ]);
 
   const [text, setText] = useState("");
-  const ref = useRef();
+  const chatRef = useRef();
 
   useEffect(() => {
     if (analysis) {
-      setMessages((m) => [
+      setMessages(m => [
         ...m,
-        { role: "assistant", content: `Cobb angle detected: ${analysis.cobb_angle}°\n${analysis.explanation ?? ""}` }
+        { 
+          role: "assistant", 
+          content: `Cobb angle detected: ${analysis.cobb_angle}°.\n${analysis.explanation ?? ""}` 
+        }
       ]);
     }
   }, [analysis]);
@@ -23,37 +26,41 @@ export default function ChatPanel({ analysis }) {
     if (!text.trim()) return;
 
     const userMsg = { role: "user", content: text };
+
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setText("");
 
     const res = await fetch("/api/chat", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ messages: newMessages })
     });
 
     const json = await res.json();
-    const assistant = json.assistant;
+    setMessages(m => [...m, json.assistant]);
 
-    setMessages((m) => [...m, assistant]);
-    setTimeout(() => ref.current?.scrollTo({ top: ref.current.scrollHeight }), 200);
+    setTimeout(() => {
+      chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight });
+    }, 100);
   };
 
   return (
-    <div className="chat-window card p-4 mt-4">
-      <div ref={ref} className="chat-history">
+    <div className="card p-4 mt-4 chat-window">
+      <div ref={chatRef} className="chat-history">
         {messages.map((m, i) => <ChatMessage key={i} msg={m} />)}
       </div>
 
       <div className="chat-input">
         <input 
-          value={text} 
+          value={text}
           onChange={(e) => setText(e.target.value)}
           className="flex-1 border p-3 rounded-md"
-          placeholder="Ask about exercises or your spine health..."
+          placeholder="Ask about exercises, posture, lifestyle..."
         />
-        <button className="px-4 py-2 border rounded-md" onClick={send}>Send</button>
+        <button onClick={send} className="px-4 py-2 border rounded-md">
+          Send
+        </button>
       </div>
     </div>
   );
