@@ -13,6 +13,7 @@ export default function UploadPanel({ onFiles, files = [], onAnalysis }) {
     }
 
     setLoading(true);
+
     try {
       const fd = new FormData();
       fd.append("file", files[0]);
@@ -27,7 +28,7 @@ export default function UploadPanel({ onFiles, files = [], onAnalysis }) {
 
       onAnalysis({
         raw_text: json.assistant_text,
-        parsed: json.parsed
+        parsed: json.parsed,
       });
 
     } catch (err) {
@@ -53,4 +54,13 @@ export default function UploadPanel({ onFiles, files = [], onAnalysis }) {
         {files.map((file, i) => (
           <div key={i} className="flex gap-3 p-3 border rounded bg-white">
             <img
-              src={URL.createObject}
+              src={URL.createObjectURL(file)}
+              className="h-20 object-contain rounded"
+            />
+            <div>{file.name}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
