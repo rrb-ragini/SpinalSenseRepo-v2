@@ -53,4 +53,4 @@ export default function UploadPanel({ onFiles, files = [], onAnalysis }) {
         {files.map((file, i) => (
           <div key={i} className="flex gap-3 p-3 border rounded bg-white">
             <img
-              src={URL.createObject
+              src={URL.createObject}
