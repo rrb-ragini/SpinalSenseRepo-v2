@@ -1,4 +1,5 @@
 // app/api/vision/route.js
+console.log("🔥 VISION ROUTE TRIGGERED");
 export const runtime = "nodejs";
 
 const SYSTEM_PROMPT = `
