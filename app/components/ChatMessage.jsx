@@ -22,31 +22,22 @@ export default function ChatPanel({ history, setHistory }) {
         body: JSON.stringify({
           conversationId: "spinal-user-123",
           saveHistory: true,
-          messages: [userMsg]           // <-- only send latest user message
+          messages: [userMsg]  // only latest user msg
         }),
       });
 
       const json = await res.json();
 
       if (!res.ok) {
-        setHistory(prev => [
-          ...prev,
-          { role: "assistant", content: "Chat error: " + json.error }
-        ]);
+        setHistory(prev => [...prev, { role: "assistant", content: "Chat error: " + json.error }]);
         setLoading(false);
         return;
       }
 
-      setHistory(prev => [
-        ...prev,
-        { role: "assistant", content: json.message }  // <-- FIXED
-      ]);
+      setHistory(prev => [...prev, { role: "assistant", content: json.message }]);
 
     } catch (err) {
-      setHistory(prev => [
-        ...prev,
-        { role: "assistant", content: "Chat failed: " + String(err) }
-      ]);
+      setHistory(prev => [...prev, { role: "assistant", content: "Chat failed: " + String(err) }]);
     }
 
     setLoading(false);
