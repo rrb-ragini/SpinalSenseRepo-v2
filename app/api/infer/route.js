@@ -1,53 +1,95 @@
 // app/api/infer/route.js
-import { analyzeImageWithVision } from "../../../lib/vision.js";
+import OpenAI from "openai";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic"; // important for Vercel runtime
+
+// Create client ONLY at runtime (not at build)
+function getClient() {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) {
+    console.error("❌ OPENAI_API_KEY missing");
+    return null;
+  }
+  return new OpenAI({ apiKey: key });
+}
 
 export async function POST(req) {
   try {
     const form = await req.formData();
+    const file = form.get("file");
 
-    // accept both keys from frontend to be resilient
-    let file = form.get("file") || form.get("xray");
     if (!file) {
-      return new Response(JSON.stringify({ error: "No file provided. Use 'file' form key." }), { status: 400, headers: { "content-type": "application/json" } });
+      return Response.json({ error: "No file uploaded." }, { status: 400 });
     }
 
-    const allowed = ["image/jpeg", "image/png", "image/webp"];
-    if (!allowed.includes(file.type)) {
-      return new Response(JSON.stringify({ error: `Unsupported MIME type: ${file.type}` }), { status: 400, headers: { "content-type": "application/json" } });
-    }
-
-    // buffer the file
     const buffer = Buffer.from(await file.arrayBuffer());
+    const mime = file.type || "image/png";
+    const base64 = buffer.toString("base64");
+    const dataUrl = `data:${mime};base64,${base64}`;
 
-    // call helper (which calls OpenAI)
-    let result;
+    const client = getClient();
+    if (!client) {
+      return Response.json({ error: "Server missing API key." }, { status: 500 });
+    }
+
+    const prompt = `
+You are a professional radiology assistant.
+Analyze the spine X-ray and return STRICT JSON ONLY:
+
+{
+  "can_measure": true/false,
+  "cobb_angle": number or null,
+  "severity": "none/mild/moderate/severe" or null,
+  "explanation": "short text"
+}
+
+If the image is unclear, return:
+{
+  "can_measure": false,
+  "cobb_angle": null,
+  "severity": null,
+  "explanation": "reason"
+}
+`;
+
+    const response = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            { type: "input_image", image_url: dataUrl }
+          ]
+        }
+      ]
+    });
+
+    const raw = response?.choices?.[0]?.message?.content;
+    if (!raw) {
+      throw new Error("Empty response from model");
+    }
+
+    let json;
     try {
-      result = await analyzeImageWithVision(buffer, file.type);
-    } catch (err) {
-      console.error("analyzeImageWithVision error:", err);
-      return new Response(JSON.stringify({ error: "Analysis failed", detail: String(err) }), { status: 500, headers: { "content-type": "application/json" } });
+      json = JSON.parse(raw);
+    } catch {
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (match) {
+        json = JSON.parse(match[0]);
+      } else {
+        throw new Error("Model did not return JSON: " + raw);
+      }
     }
 
-    if (!result || result.can_measure === false) {
-      return new Response(JSON.stringify({
-        error: "Could not interpret this X-ray.",
-        explanation: result?.explanation ?? "Image quality/orientation issue",
-        raw_output: result?.raw_output ?? null
-      }), { status: 400, headers: { "content-type": "application/json" } });
-    }
-
-    // final success
-    return new Response(JSON.stringify({
-      cobb_angle: result.cobb_angle,
-      severity: result.severity ?? null,
-      explanation: result.explanation ?? null,
-      overlay_url: result.overlay_url ?? null
-    }), { status: 200, headers: { "content-type": "application/json" } });
+    return Response.json(json);
 
   } catch (err) {
-    console.error("infer route general error:", err);
-    return new Response(JSON.stringify({ error: "Server crashed", detail: String(err) }), { status: 500, headers: { "content-type": "application/json" } });
+    console.error("❌ Infer API ERROR:", err);
+    return Response.json(
+      { error: "Analysis failed", details: String(err) },
+      { status: 500 }
+    );
   }
 }
