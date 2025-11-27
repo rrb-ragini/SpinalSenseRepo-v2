@@ -60,7 +60,7 @@ If the image is unclear, return:
           role: "user",
           content: [
             { type: "text", text: prompt },
-            { type: "input_image", image_url: dataUrl }
+            { type: "image_url", image_url: dataUrl }
           ]
         }
       ]
