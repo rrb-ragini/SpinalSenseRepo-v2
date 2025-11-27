@@ -24,19 +24,17 @@ export async function POST(req) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const mime = file.type || "image/png";
-    const dataUrl = `data:${mime};base64,${buffer.toString("base64")}`;
+    const base64 = buffer.toString("base64");
+    const dataUrl = `data:${mime};base64,${base64}`;
 
     const client = getClient();
     if (!client) {
-      return Response.json(
-        { error: "Server missing API key" },
-        { status: 500 }
-      );
+      return Response.json({ error: "Server missing API key" }, { status: 500 });
     }
 
     const prompt = `
 You are a professional radiology assistant.
-Return STRICT JSON only with this shape:
+Return STRICT JSON ONLY:
 
 {
   "can_measure": true|false,
@@ -44,65 +42,48 @@ Return STRICT JSON only with this shape:
   "severity": "none"|"mild"|"moderate"|"severe"|null,
   "explanation": "short text"
 }
+
+Always analyze the image best you can. NEVER say you cannot view images.
 `;
 
-    // ✅ Use ONLY gpt-4.1 (no iteration!)
     const response = await client.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o",    // upgraded model
       messages: [
         {
           role: "user",
           content: [
             { type: "text", text: prompt },
-            { type: "image_url", image_url: {url: dataUrl}}
+            {
+              type: "image",
+              image_url: dataUrl
+            }
           ]
         }
       ],
       max_tokens: 500
     });
 
-    // Extract content from the model safely
-let content = response?.choices?.[0]?.message?.content;
+    const raw = response?.choices?.[0]?.message?.content;
 
-// Handle array-based content (gpt-4o format)
-if (Array.isArray(content)) {
-  const textItem = content.find(c => c.type === "output_text" || c.type === "text");
-  content = textItem?.text ?? null;
-}
+    if (!raw) {
+      return Response.json({ error: "Empty model response" }, { status: 500 });
+    }
 
-// Validate content
-if (!content || typeof content !== "string") {
-  console.error("❌ Model returned no string content:", content);
-  return Response.json(
-    { error: "Model returned no usable output", raw: content },
-    { status: 502 }
-  );
-}
+    let parsed = null;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (match) parsed = JSON.parse(match[0]);
+      else return Response.json({ error: "Non-JSON output", raw }, { status: 500 });
+    }
 
-// Try parsing JSON
-let parsed;
-try {
-  parsed = JSON.parse(content);
-} catch {
-  const m = content.match(/\{[\s\S]*\}/);
-  if (m) parsed = JSON.parse(m[0]);
-  else {
-    return Response.json(
-      { error: "Model output was not JSON", raw: content },
-      { status: 500 }
-    );
-  }
-}
-    
     parsed.overlay_url = dataUrl;
 
-    return Response.json(parsed, { status: 200 });
+    return Response.json(parsed);
 
   } catch (err) {
     console.error("❌ Infer route error:", err);
-    return Response.json(
-      { error: "Server error", details: String(err) },
-      { status: 500 }
-    );
+    return Response.json({ error: "Server error", details: String(err) }, { status: 500 });
   }
 }
