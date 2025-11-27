@@ -44,6 +44,17 @@ export async function POST(req) {
 
     const output = completion.choices[0].message.content;
 
+    // === Store memory in Pinecone ===
+    if (conversationId) {
+      // Save user last message
+      const lastUserMessage = messages[messages.length - 1]?.content;
+      await saveMemory(conversationId, "user", lastUserMessage);
+    
+      // Save assistant response
+      await saveMemory(conversationId, "assistant", output);
+    }
+
+
     // Update memory
     if (conversationId && saveHistory) {
       const updated = [...previous, ...messages, { role: "assistant", content: output }];
