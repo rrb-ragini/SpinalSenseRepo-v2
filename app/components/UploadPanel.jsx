@@ -16,10 +16,9 @@ export default function UploadPanel({ onFiles, files = [], onAnalysis }) {
 
     try {
       const fd = new FormData();
-      fd.append("file", files[0]);   // MUST MATCH infer backend
+      fd.append("file", files[0]);
 
-      // IMPORTANT: call the correct infer route that exists
-      const res = await fetch("/app/api/infer", {
+      const res = await fetch("/api/infer", {
         method: "POST",
         body: fd,
       });
@@ -27,22 +26,20 @@ export default function UploadPanel({ onFiles, files = [], onAnalysis }) {
       const json = await res.json();
 
       if (!res.ok) {
-        alert("Error analyzing image: " + (json.error || "Unknown error"));
-        setLoading(false);
+        alert("Error analyzing: " + json.error);
         return;
       }
 
-      // Send result to UI
       onAnalysis({
-        raw_text: JSON.stringify(json, null, 2),
+        raw_text: json.explanation,
         parsed: json,
       });
 
     } catch (err) {
       alert("Upload failed: " + String(err));
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
