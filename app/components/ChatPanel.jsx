@@ -1,54 +1,63 @@
 "use client";
 
 import { useState } from "react";
-import ChatMessage from "./ChatMessage";
 
-export default function ChatPanel({ analysis }) {
-  const [messages, setMessages] = useState([
-    { role: "assistant", content: "Hello! Upload an X-ray to begin." }
-  ]);
+export default function ChatPanel() {
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
 
-  // Add analysis message when it arrives
-  if (analysis && !messages.some(m => m.role === "analysis")) {
-    messages.push({
-      role: "analysis",
-      content: analysis.parsed
-    });
-  }
-
-  const send = async () => {
+  const sendMessage = async () => {
     if (!input.trim()) return;
 
     const userMsg = { role: "user", content: input };
-    setMessages(msgs => [...msgs, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setInput("");
 
-    const res = await fetch("/app/api/chat", {
-      method: "POST",
-      body: JSON.stringify({ message: input })
-    });
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          messages: [userMsg],
+        }),
+      });
 
-    const json = await res.json();
-    setMessages(msgs => [...msgs, { role: "assistant", content: json.reply }]);
+      const json = await res.json();
+
+      if (!res.ok) {
+        alert("Chat error: " + json.error);
+        return;
+      }
+
+      const assistantMsg = {
+        role: "assistant",
+        content: json.message,
+      };
+
+      setMessages((prev) => [...prev, assistantMsg]);
+
+    } catch (err) {
+      alert("Request failed: " + err.message);
+    }
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto space-y-3 pr-2">
-        {messages.map((msg, i) => (
-          <ChatMessage key={i} msg={msg} />
+    <div>
+      <div className="mb-4 space-y-2 h-64 overflow-y-auto bg-white p-4 rounded">
+        {messages.map((m, i) => (
+          <div key={i} className={m.role === "user" ? "text-right" : "text-left"}>
+            <span className="block p-2 bg-gray-100 rounded">{m.content}</span>
+          </div>
         ))}
       </div>
 
-      <div className="mt-2 flex gap-2">
+      <div className="flex gap-3">
         <input
-          className="flex-1 border p-2 rounded"
-          placeholder="Ask about posture, exercises…"
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          placeholder="Ask anything..."
+          className="flex-1 border p-2 rounded"
         />
-        <button onClick={send} className="px-4 bg-primary text-white rounded">
+        <button onClick={sendMessage} className="bg-primary text-white px-4 py-2 rounded">
           Send
         </button>
       </div>
