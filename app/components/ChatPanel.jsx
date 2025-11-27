@@ -1,111 +1,88 @@
 "use client";
-
 import { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
-export default function ChatPanel({ analysis, history, setHistory }) {
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+export default function ChatPanel({ analysis }) {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
 
-  // ⭐ When X-ray analysis arrives, show it AND save it to chat memory
+  // When X-ray analysis arrives → append to chat
   useEffect(() => {
     if (!analysis) return;
 
-    const text = `📘 X-ray Analysis Result
-Cobb Angle: ${analysis.cobb_angle ?? "N/A"}°
-Severity: ${analysis.severity ?? "N/A"}
-Explanation: ${analysis.explanation ?? "N/A"}`;
+    const text = `## 📘 X-ray Analysis Result
 
-    // update UI
-    setHistory((prev) => [...prev, { role: "assistant", content: text }]);
+**Cobb Angle:** ${analysis.cobb_angle ?? "N/A"}°
 
-    // update backend memory
-    (async () => {
-      await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId: "spinal-user-123",
-          saveHistory: true,
-          messages: [{ role: "assistant", content: text }]
-        })
-      });
-    })();
+**Severity:** ${analysis.severity ?? "N/A"}
+
+**Explanation:**  
+${analysis.explanation ?? "N/A"}
+`;
+
+    setMessages((prev) => [...prev, { role: "assistant", content: text }]);
+
+    // save to server memory
+    fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId: "spinal-user-123",
+        saveHistory: true,
+        messages: [{ role: "assistant", content: text }],
+      }),
+    });
   }, [analysis]);
 
-  const send = async () => {
-    if (!message.trim()) return;
+  const sendMessage = async () => {
+    if (!input.trim()) return;
 
-    const userMsg = { role: "user", content: message };
-    setHistory((prev) => [...prev, userMsg]);
-    setMessage("");
-    setLoading(true);
+    const userMsg = { role: "user", content: input };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
 
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId: "spinal-user-123",
-          saveHistory: true,
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId: "spinal-user-123",
+        saveHistory: true,
+        messages: [userMsg],
+      }),
+    });
 
-          // ⭐ send full history for perfect memory
-          messages: [...history, userMsg]
-        }),
-      });
-
-      const json = await res.json();
-
-      if (!res.ok) {
-        setHistory((prev) => [
-          ...prev,
-          { role: "assistant", content: "Chat error: " + json.error }
-        ]);
-        setLoading(false);
-        return;
-      }
-
-      setHistory((prev) => [
-        ...prev,
-        { role: "assistant", content: json.message }
-      ]);
-
-    } catch (err) {
-      setHistory((prev) => [
-        ...prev,
-        { role: "assistant", content: "Chat failed: " + err.message }
-      ]);
-    }
-
-    setLoading(false);
+    const json = await res.json();
+    setMessages((prev) => [...prev, { role: "assistant", content: json.message }]);
   };
 
   return (
-    <div className="w-full">
-      <div className="space-y-2 mb-4 h-80 overflow-y-auto bg-white p-4 rounded">
-        {history.map((msg, i) => (
-          <div key={i} className={msg.role === "user" ? "text-right" : "text-left"}>
-            <span className="block p-2 bg-gray-100 rounded whitespace-pre-wrap">
-              {msg.content}
-            </span>
+    <div>
+      <div className="mb-4 space-y-2 h-96 overflow-y-auto bg-white p-4 rounded">
+        {messages.map((m, i) => (
+          <div key={i} className={m.role === "user" ? "text-right" : "text-left"}>
+            <div
+              className={`p-3 rounded-lg inline-block max-w-[85%] ${
+                m.role === "assistant" ? "bg-gray-100" : "bg-blue-100"
+              }`}
+            >
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {m.content}
+              </ReactMarkdown>
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <input
-          className="flex-1 border rounded px-3 py-2"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
           placeholder="Ask anything..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          disabled={loading}
+          className="flex-1 border p-2 rounded"
         />
-
-        <button
-          onClick={send}
-          disabled={loading}
-          className="bg-primary text-white px-4 py-2 rounded"
-        >
-          {loading ? "..." : "Send"}
+        <button onClick={sendMessage} className="bg-primary text-white px-4 py-2 rounded">
+          Send
         </button>
       </div>
     </div>
