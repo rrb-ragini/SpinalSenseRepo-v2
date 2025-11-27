@@ -54,8 +54,8 @@ Always analyze the image best you can. NEVER say you cannot view images.
           content: [
             { type: "text", text: prompt },
             {
-              type: "image",
-              image_url: dataUrl
+              type: "image_url",
+              image_url: {url: dataUrl}
             }
           ]
         }
