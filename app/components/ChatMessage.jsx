@@ -16,29 +16,37 @@ export default function ChatPanel({ history, setHistory }) {
     setLoading(true);
 
     try {
-      // IMPORTANT: Correct API route path for nested app folder
-    const res = await fetch("/app/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        conversationId: "spinal-user-123",      // <-- Added for memory
-        saveHistory: true,                      // <-- optional, but recommended
-        messages: [...history, userMsg]         // <-- same as before
-      }),
-    });
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId: "spinal-user-123",
+          saveHistory: true,
+          messages: [userMsg]           // <-- only send latest user message
+        }),
+      });
 
       const json = await res.json();
 
       if (!res.ok) {
-        setHistory(prev => [...prev, { role: "assistant", content: "Chat error: " + json.error }]);
+        setHistory(prev => [
+          ...prev,
+          { role: "assistant", content: "Chat error: " + json.error }
+        ]);
         setLoading(false);
         return;
       }
 
-      setHistory(prev => [...prev, { role: "assistant", content: json.reply }]);
+      setHistory(prev => [
+        ...prev,
+        { role: "assistant", content: json.message }  // <-- FIXED
+      ]);
 
     } catch (err) {
-      setHistory(prev => [...prev, { role: "assistant", content: "Chat failed: " + String(err) }]);
+      setHistory(prev => [
+        ...prev,
+        { role: "assistant", content: "Chat failed: " + String(err) }
+      ]);
     }
 
     setLoading(false);
