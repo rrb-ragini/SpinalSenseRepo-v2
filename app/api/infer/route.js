@@ -28,15 +28,12 @@ export async function POST(req) {
 
     const client = getClient();
     if (!client) {
-      return Response.json(
-        { error: "Server misconfigured - Missing OPENAI_API_KEY" },
-        { status: 500 }
-      );
+      return Response.json({ error: "Server misconfigured - Missing OPENAI_API_KEY." }, { status: 500 });
     }
 
     const prompt = `
 You are a professional radiology assistant.
-Return STRICT JSON ONLY in this format:
+Return STRICT JSON ONLY:
 
 {
   "can_measure": true|false,
@@ -44,12 +41,14 @@ Return STRICT JSON ONLY in this format:
   "severity": "<none|mild|moderate|severe|null>",
   "explanation": "<short text>"
 }
+
+If the image is unclear, return can_measure=false.
 `;
 
-    // ✅ SINGLE correct model — supports image input
-    const model = "gpt-4o-mini";
+    // ⭐ BEST MODEL WITH VISION SUPPORT
+    const model = "gpt-4o";
 
-    console.log("📡 Calling OpenAI with model:", model);
+    console.log("📡 Calling OpenAI with:", model);
 
     const response = await client.chat.completions.create({
       model,
@@ -62,15 +61,13 @@ Return STRICT JSON ONLY in this format:
           ]
         }
       ],
-      max_tokens: 800
+      max_tokens: 500
     });
-
-    console.log("📡 OpenAI raw content:", response);
 
     const raw = response?.choices?.[0]?.message?.content;
     if (!raw) {
       return Response.json(
-        { error: "OpenAI returned no content", raw_output: response },
+        { error: "OpenAI returned empty response", raw_output: response },
         { status: 502 }
       );
     }
@@ -79,8 +76,8 @@ Return STRICT JSON ONLY in this format:
     try {
       parsed = JSON.parse(raw);
     } catch {
-      const match = raw.match(/\{[\s\S]*\}/);
-      parsed = match ? JSON.parse(match[0]) : null;
+      const block = raw.match(/\{[\s\S]*\}/);
+      if (block) parsed = JSON.parse(block[0]);
     }
 
     if (!parsed) {
@@ -95,7 +92,7 @@ Return STRICT JSON ONLY in this format:
     return Response.json(parsed, { status: 200 });
 
   } catch (err) {
-    console.error("❌ Infer route top-level error:", err);
+    console.error("❌ Infer route error:", err);
     return Response.json(
       { error: "Server error", details: String(err) },
       { status: 500 }
