@@ -85,6 +85,22 @@ ${analysis.explanation ?? "N/A"}
           Send
         </button>
       </div>
+
+      <p className="text-xs text-gray-500 mt-3 text-center px-6">
+        By using SpinalSense, you agree to our&nbsp;
+        <a 
+          href="/terms" 
+          className="underline text-blue-600 hover:text-blue-800"
+          target="_blank"
+        >
+          Terms & Conditions
+        </a>. <br />
+        This assistant is for educational support only and does not provide medical advice, 
+        diagnosis, or treatment. Always consult a licensed healthcare professional for 
+        decisions regarding your spine and overall health.
+      </p>
+
+      
     </div>
   );
 }
