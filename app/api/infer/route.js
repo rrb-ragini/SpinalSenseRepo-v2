@@ -51,9 +51,7 @@ Return STRICT JSON only (no explanation text). The JSON shape should be:
 If you cannot measure, set "can_measure": false and include "explanation".
 `;
 
-    // Try two model names depending on account access.
-    // If gpt-4o-mini fails (empty), try gpt-4o.
-    const modelCandidates = ["gpt-4o-mini", "gpt-4o"];
+    const modelCandidates = "gpt-4.1";
 
     let response = null;
     let lastError = null;
