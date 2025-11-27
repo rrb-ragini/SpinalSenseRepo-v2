@@ -16,8 +16,6 @@ export default function AvatarMenu() {
       {open && (
         <div className="absolute right-0 mt-2 w-48 bg-white card p-3">
           <a className="block px-2 py-2 rounded hover:bg-slate-50" href="/terms">Terms & Conditions</a>
-        </div>
-        <div className="absolute right-0 mt-2 w-48 bg-white card p-3">
           <a className="block px-2 py-2 rounded hover:bg-slate-50" href="/auth/logout">Logout</a>
         </div>
       )}
