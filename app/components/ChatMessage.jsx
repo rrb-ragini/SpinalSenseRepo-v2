@@ -17,11 +17,15 @@ export default function ChatPanel({ history, setHistory }) {
 
     try {
       // IMPORTANT: Correct API route path for nested app folder
-      const res = await fetch("/app/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [...history, userMsg] }),
-      });
+    const res = await fetch("/app/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId: "spinal-user-123",      // <-- Added for memory
+        saveHistory: true,                      // <-- optional, but recommended
+        messages: [...history, userMsg]         // <-- same as before
+      }),
+    });
 
       const json = await res.json();
 
