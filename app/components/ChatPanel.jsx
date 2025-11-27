@@ -1,52 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
-export default function ChatPanel({ analysis }) {
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
+export default function ChatPanel({ history, setHistory }) {
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // 🔥 When X-ray analysis arrives: show it + store it in server memory
-  useEffect(() => {
-    if (!analysis) return;
+  const send = async () => {
+    if (!message.trim()) return;
 
-    const text = `📘 X-ray Analysis Result
-Cobb Angle: ${analysis.cobb_angle ?? "N/A"}°
-Severity: ${analysis.severity ?? "N/A"}
-Explanation: ${analysis.explanation ?? "N/A"}`;
-
-    // Show visually in chat
-    setMessages((prev) => [
-      ...prev,
-      { role: "assistant", content: text }
-    ]);
-
-    // Save into backend memory (MUST be awaited inside async IIFE)
-    (async () => {
-      await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId: "spinal-user-123",
-          saveHistory: true,
-          messages: [
-            {
-              role: "assistant",
-              content: text
-            }
-          ]
-        })
-      });
-    })();
-  }, [analysis]);
-
-  // 🔥 Send user message to chat backend with memory enabled
-  const sendMessage = async () => {
-    if (!input.trim()) return;
-
-    const userMsg = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput("");
+    const userMsg = { role: "user", content: message };
+    setHistory([...history, userMsg]);
+    setMessage("");
+    setLoading(true);
 
     try {
       const res = await fetch("/api/chat", {
@@ -55,63 +21,62 @@ Explanation: ${analysis.explanation ?? "N/A"}`;
         body: JSON.stringify({
           conversationId: "spinal-user-123",
           saveHistory: true,
-          messages: [userMsg]    // ONLY send the newest user message
-        })
+          messages: [...history, userMsg]   // FULL HISTORY
+        }),
       });
 
       const json = await res.json();
 
       if (!res.ok) {
-        setMessages((prev) => [
+        setHistory(prev => [
           ...prev,
           { role: "assistant", content: "Chat error: " + json.error }
         ]);
+        setLoading(false);
         return;
       }
 
-      // Show assistant message
-      setMessages((prev) => [
+      setHistory(prev => [
         ...prev,
-        { role: "assistant", content: json.message }   // correct field
+        { role: "assistant", content: json.message }
       ]);
 
     } catch (err) {
-      setMessages((prev) => [
+      setHistory(prev => [
         ...prev,
-        { role: "assistant", content: "Request failed: " + err.message }
+        { role: "assistant", content: "Chat failed: " + String(err) }
       ]);
     }
+
+    setLoading(false);
   };
 
   return (
-    <div>
-      {/* Chat history window */}
-      <div className="mb-4 space-y-2 h-64 overflow-y-auto bg-white p-4 rounded">
-        {messages.map((m, i) => (
-          <div
-            key={i}
-            className={m.role === "user" ? "text-right" : "text-left"}
-          >
+    <div className="w-full">
+      <div className="space-y-2 mb-4">
+        {history.map((msg, i) => (
+          <div key={i} className={msg.role === "user" ? "text-right" : "text-left"}>
             <span className="block p-2 bg-gray-100 rounded whitespace-pre-wrap">
-              {m.content}
+              {msg.content}
             </span>
           </div>
         ))}
       </div>
 
-      {/* Message input area */}
-      <div className="flex gap-3">
+      <div className="flex gap-2">
         <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
+          className="flex-1 border rounded px-3 py-2"
           placeholder="Ask anything..."
-          className="flex-1 border p-2 rounded"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          disabled={loading}
         />
         <button
-          onClick={sendMessage}
+          onClick={send}
+          disabled={loading}
           className="bg-primary text-white px-4 py-2 rounded"
         >
-          Send
+          {loading ? "..." : "Send"}
         </button>
       </div>
     </div>
