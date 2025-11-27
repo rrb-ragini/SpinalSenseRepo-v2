@@ -1,6 +1,7 @@
 "use client";
-import UploadPanel from "../../components/UploadPanel";
-import ChatPanel from "../../components/ChatPanel";
+import UploadPanel from "@/components/UploadPanel";
+import ChatPanel from "@/components/ChatPanel";
+
 import { useState } from "react";
 
 export default function Home() {
