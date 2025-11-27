@@ -16,30 +16,23 @@ export default function UploadPanel({ onFiles, files = [], onAnalysis }) {
 
     try {
       const fd = new FormData();
-      fd.append("file", files[0]); // MUST MATCH backend
+      fd.append("file", files[0]);
 
       const res = await fetch("/api/infer", {
         method: "POST",
         body: fd,
       });
 
-      // -----------------------------
-      // SAFE JSON HANDLING
-      // -----------------------------
       let payload = null;
       let text = "";
 
       try {
-        text = await res.text();            // read raw text (ALWAYS succeeds)
-        payload = JSON.parse(text);         // try JSON
-      } catch (e) {
-        // If JSON fails, payload stays null and text contains the raw response
+        text = await res.text();
+        payload = JSON.parse(text);
+      } catch {
         payload = null;
       }
 
-      // -----------------------------
-      // HANDLE BAD RESPONSE
-      // -----------------------------
       if (!res.ok) {
         const msg =
           (payload && payload.error) ||
@@ -48,33 +41,20 @@ export default function UploadPanel({ onFiles, files = [], onAnalysis }) {
 
         alert("Error analyzing image: " + msg);
 
-        // send raw response to onAnalysis so UI shows useful debug info
-        onAnalysis({
-          raw_text: text,
-          parsed: payload,
-        });
-
+        onAnalysis(payload || { error: msg });
         setLoading(false);
         return;
       }
 
-      // -----------------------------
-      // SUCCESS CASE
-      // -----------------------------
       if (!payload) {
         alert("Server returned non-JSON response: " + text);
-        onAnalysis({
-          raw_text: text,
-          parsed: null,
-        });
+        onAnalysis({ error: "Non-JSON server response", raw: text });
         setLoading(false);
         return;
       }
 
-      onAnalysis({
-        raw_text: JSON.stringify(payload, null, 2),
-        parsed: payload,
-      });
+      // 🔥 send only parsed payload → ChatPanel needs this
+      onAnalysis(payload);
 
     } catch (err) {
       alert("Upload failed: " + String(err));
