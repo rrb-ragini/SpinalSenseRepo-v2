@@ -61,30 +61,39 @@ Return STRICT JSON only with this shape:
       max_tokens: 500
     });
 
-    const raw = response?.choices?.[0]?.message?.content;
+    // Extract content from the model safely
+let content = response?.choices?.[0]?.message?.content;
 
-    if (!raw) {
-      console.error("❌ Empty model response");
-      return Response.json(
-        { error: "OpenAI returned no content" },
-        { status: 502 }
-      );
-    }
+// Handle array-based content (gpt-4o format)
+if (Array.isArray(content)) {
+  const textItem = content.find(c => c.type === "output_text" || c.type === "text");
+  content = textItem?.text ?? null;
+}
 
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      const m = raw.match(/\{[\s\S]*\}/);
-      if (m) parsed = JSON.parse(m[0]);
-      else {
-        return Response.json(
-          { error: "Model output was not JSON", raw },
-          { status: 500 }
-        );
-      }
-    }
+// Validate content
+if (!content || typeof content !== "string") {
+  console.error("❌ Model returned no string content:", content);
+  return Response.json(
+    { error: "Model returned no usable output", raw: content },
+    { status: 502 }
+  );
+}
 
+// Try parsing JSON
+let parsed;
+try {
+  parsed = JSON.parse(content);
+} catch {
+  const m = content.match(/\{[\s\S]*\}/);
+  if (m) parsed = JSON.parse(m[0]);
+  else {
+    return Response.json(
+      { error: "Model output was not JSON", raw: content },
+      { status: 500 }
+    );
+  }
+}
+    
     parsed.overlay_url = dataUrl;
 
     return Response.json(parsed, { status: 200 });
