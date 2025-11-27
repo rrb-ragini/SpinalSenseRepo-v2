@@ -1,8 +1,8 @@
 import OpenAI from "openai";
-import { saveMemory, fetchMemories } from "../../lib/pinecone";
 import { buildSystemPrompt } from "../../lib/prompts";
+import { saveMemory, fetchMemories } from "../../lib/pinecone";
 
-// Server-side memory (ephemeral)
+// Server-side memory (ephemeral fallback)
 if (!globalThis.__SPINAL_MEMORY) {
   globalThis.__SPINAL_MEMORY = new Map();
 }
@@ -11,27 +11,27 @@ export async function POST(req) {
   try {
     const { messages, conversationId, saveHistory = true } = await req.json();
 
-      // === Fetch Pinecone memory ===
-  let retrieved = [];
-  if (conversationId) {
-    const lastUserMessage = messages[messages.length - 1]?.content || "";
-    retrieved = await fetchMemories(conversationId, lastUserMessage);
-  }
-  
-  const memoryPrompt = retrieved.length
-    ? `Relevant past context:\n${retrieved.map(r => "- " + r).join("\n")}`
-    : "No relevant past memory.";
-
-
     const memory = globalThis.__SPINAL_MEMORY;
     let previous = [];
 
     if (conversationId && memory.has(conversationId)) {
-      previous = memory.get(conversationId).slice(-8); // last 8 turns
+      previous = memory.get(conversationId).slice(-8);
     }
+
+    // === Fetch RAG Memory from Pinecone ===
+    let retrieved = [];
+    if (conversationId) {
+      const lastUserMessage = messages[messages.length - 1]?.content || "";
+      retrieved = await fetchMemories(conversationId, lastUserMessage);
+    }
+
+    const memoryPrompt = retrieved.length
+      ? `Relevant past context:\n${retrieved.map(r => "- " + r).join("\n")}`
+      : "No relevant past memory.";
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+    // === Call GPT with both system + RAG memory ===
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -39,26 +39,21 @@ export async function POST(req) {
         { role: "system", content: memoryPrompt },
         ...messages
       ],
-
     });
 
     const output = completion.choices[0].message.content;
 
-    // === Store memory in Pinecone ===
+    // === Save to Pinecone ===
     if (conversationId) {
-      // Save user last message
       const lastUserMessage = messages[messages.length - 1]?.content;
       await saveMemory(conversationId, "user", lastUserMessage);
-    
-      // Save assistant response
       await saveMemory(conversationId, "assistant", output);
     }
 
-
-    // Update memory
+    // === Update short-term memory ===
     if (conversationId && saveHistory) {
       const updated = [...previous, ...messages, { role: "assistant", content: output }];
-      memory.set(conversationId, updated.slice(-16)); // keep memory small
+      memory.set(conversationId, updated.slice(-16));
     }
 
     return Response.json({ message: output });
