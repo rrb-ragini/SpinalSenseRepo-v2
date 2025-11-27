@@ -36,9 +36,10 @@ export async function POST(req) {
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: buildSystemPrompt() },
-        ...previous,
+        { role: "system", content: memoryPrompt },
         ...messages
       ],
+
     });
 
     const output = completion.choices[0].message.content;
