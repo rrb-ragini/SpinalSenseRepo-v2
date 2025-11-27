@@ -11,6 +11,18 @@ export async function POST(req) {
   try {
     const { messages, conversationId, saveHistory = true } = await req.json();
 
+      // === Fetch Pinecone memory ===
+  let retrieved = [];
+  if (conversationId) {
+    const lastUserMessage = messages[messages.length - 1]?.content || "";
+    retrieved = await fetchMemories(conversationId, lastUserMessage);
+  }
+  
+  const memoryPrompt = retrieved.length
+    ? `Relevant past context:\n${retrieved.map(r => "- " + r).join("\n")}`
+    : "No relevant past memory.";
+
+
     const memory = globalThis.__SPINAL_MEMORY;
     let previous = [];
 
