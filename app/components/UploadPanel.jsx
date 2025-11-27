@@ -16,19 +16,64 @@ export default function UploadPanel({ onFiles, files = [], onAnalysis }) {
 
     try {
       const fd = new FormData();
-      fd.append("file", files[0]);
+      fd.append("file", files[0]); // MUST MATCH backend
 
-      const res = await fetch("/app/api/infer", { method: "POST", body: fd });
-      const json = await res.json();
+      const res = await fetch("/api/infer", {
+        method: "POST",
+        body: fd,
+      });
 
+      // -----------------------------
+      // SAFE JSON HANDLING
+      // -----------------------------
+      let payload = null;
+      let text = "";
+
+      try {
+        text = await res.text();            // read raw text (ALWAYS succeeds)
+        payload = JSON.parse(text);         // try JSON
+      } catch (e) {
+        // If JSON fails, payload stays null and text contains the raw response
+        payload = null;
+      }
+
+      // -----------------------------
+      // HANDLE BAD RESPONSE
+      // -----------------------------
       if (!res.ok) {
-        alert("Error analyzing: " + json.error);
+        const msg =
+          (payload && payload.error) ||
+          text ||
+          "Unknown error from server";
+
+        alert("Error analyzing image: " + msg);
+
+        // send raw response to onAnalysis so UI shows useful debug info
+        onAnalysis({
+          raw_text: text,
+          parsed: payload,
+        });
+
+        setLoading(false);
+        return;
+      }
+
+      // -----------------------------
+      // SUCCESS CASE
+      // -----------------------------
+      if (!payload) {
+        alert("Server returned non-JSON response: " + text);
+        onAnalysis({
+          raw_text: text,
+          parsed: null,
+        });
+        setLoading(false);
         return;
       }
 
       onAnalysis({
-        raw_text: json.explanation,
-        parsed: json,
+        raw_text: JSON.stringify(payload, null, 2),
+        parsed: payload,
       });
 
     } catch (err) {
