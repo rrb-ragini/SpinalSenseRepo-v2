@@ -71,6 +71,10 @@ export default function LoginPage() {
         </div>
       </div>
 
+      <div className="text-center text-sm mt-3 font-medium text-blue-600">
+        This is a demo account — please click <span className="font-semibold">Continue</span>.
+      </div>
+
       <p className="mt-6 text-sm text-slate-600 text-center">
         <strong>Spinal tip:</strong> Keep a healthy desk posture, break prolonged sitting every 40 minutes.
       </p>
