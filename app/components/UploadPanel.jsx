@@ -75,6 +75,14 @@ export default function UploadPanel({ onFiles, files = [], onAnalysis }) {
         {loading ? "Analyzing..." : "Analyze X-rays"}
       </button>
 
+      <a href="https://www.choa.org/blog/2018/august/~/media/407CB5DBD39947E9AE42FCB9E6FAC76B.ashx?h=421&w=276"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-blue-600 underline mt-3 inline-block text-sm">
+      Download sample X-ray (demo)
+      </a>
+
+      
       <div className="mt-4 space-y-3">
         {files.map((file, i) => (
           <div key={i} className="flex gap-3 p-3 border rounded bg-white">
