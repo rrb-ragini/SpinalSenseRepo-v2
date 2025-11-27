@@ -24,7 +24,7 @@ export default function ChatPanel({ analysis }) {
     setMessages(msgs => [...msgs, userMsg]);
     setInput("");
 
-    const res = await fetch("/api/chat", {
+    const res = await fetch("/app/api/chat", {
       method: "POST",
       body: JSON.stringify({ message: input })
     });
