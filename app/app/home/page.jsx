@@ -1,12 +1,15 @@
 "use client";
+
 import UploadPanel from "../../components/UploadPanel";
 import ChatPanel from "../../components/ChatPanel";
-
 import { useState } from "react";
 
 export default function Home() {
   const [files, setFiles] = useState([]);
   const [analysis, setAnalysis] = useState(null);
+
+  // ⭐ RESTORED CHAT HISTORY STATE
+  const [history, setHistory] = useState([]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-[420px_1fr] gap-6">
@@ -24,7 +27,8 @@ export default function Home() {
           <h3 className="text-xl font-bold">Spine Assistant</h3>
         </div>
 
-        <ChatPanel analysis={analysis} />
+        {/* ⭐ PASS HISTORY + SETHISTORY */}
+        <ChatPanel history={history} setHistory={setHistory} />
       </div>
     </div>
   );
