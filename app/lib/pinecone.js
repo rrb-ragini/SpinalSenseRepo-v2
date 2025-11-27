@@ -1,42 +1,47 @@
 import { Pinecone } from "@pinecone-database/pinecone";
 import OpenAI from "openai";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const pc = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// The Pinecone index name must match your myAI3 index
-const index = pc.index(process.env.PINECONE_INDEX);
+const pc = new Pinecone({
+  apiKey: process.env.PINECONE_API_KEY,
+});
 
-export async function embedText(text) {
-  const embedding = await client.embeddings.create({
+// ⭐ MUST pass the host for serverless indexes
+const index = pc.index(
+  process.env.PINECONE_INDEX,
+  process.env.PINECONE_HOST
+);
+
+export async function embed(text) {
+  const embedding = await openai.embeddings.create({
     model: "text-embedding-3-small",
     input: text,
   });
-
   return embedding.data[0].embedding;
 }
 
 export async function saveMemory(conversationId, role, content) {
-  const vector = await embedText(content);
+  const vector = await embed(content);
 
   await index.upsert([
     {
       id: `${conversationId}-${Date.now()}`,
       values: vector,
-      metadata: { role, content, conversationId }
+      metadata: { conversationId, role, content },
     }
   ]);
 }
 
 export async function fetchMemories(conversationId, query) {
-  const queryVector = await embedText(query);
+  const vector = await embed(query);
 
-  const results = await index.query({
+  const result = await index.query({
     topK: 6,
-    vector: queryVector,
+    vector,
     includeMetadata: true,
-    filter: { conversationId }
+    filter: { conversationId },
   });
 
-  return results.matches.map(m => m.metadata.content);
+  return result.matches.map(m => m.metadata.content);
 }
