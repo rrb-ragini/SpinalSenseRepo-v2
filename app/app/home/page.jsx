@@ -1,14 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import UploadPanel from "../../components/UploadPanel";
 import ChatPanel from "../../components/ChatPanel";
-import { useState } from "react";
 
 export default function Home() {
   const [files, setFiles] = useState([]);
   const [analysis, setAnalysis] = useState(null);
 
-  // ⭐ RESTORED CHAT HISTORY STATE
+  // ⭐ REQUIRED FOR CHAT MEMORY
   const [history, setHistory] = useState([]);
 
   return (
@@ -27,8 +27,12 @@ export default function Home() {
           <h3 className="text-xl font-bold">Spine Assistant</h3>
         </div>
 
-        {/* ⭐ PASS HISTORY + SETHISTORY */}
-        <ChatPanel history={history} setHistory={setHistory} />
+        {/* ⭐ ChatPanel must receive BOTH props */}
+        <ChatPanel
+          analysis={analysis}
+          history={history}
+          setHistory={setHistory}
+        />
       </div>
     </div>
   );
