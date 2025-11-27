@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { saveMemory, fetchMemories } from "../../lib/pinecone";
 import { buildSystemPrompt } from "../../lib/prompts";
 
 // Server-side memory (ephemeral)
