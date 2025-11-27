@@ -13,7 +13,7 @@ export default function Home() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-[420px_1fr] gap-6">
-      <div className="card p-6">
+      <div className="card p-6 mx-auto">
         <h2 className="text-2xl font-semibold mb-4">Upload X-rays</h2>
         <UploadPanel
           onFiles={(arr) => setFiles((prev) => [...prev, ...arr])}
