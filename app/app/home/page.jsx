@@ -23,7 +23,7 @@ export default function Home() {
       </div>
 
       <div>
-        <div className="card p-6 bg-gradient-to-b from-accent to-purple-600 text-white mb-4">
+        <div className="card p-6 bg-gradient-to-r from-blue-400 to-blue-600 text-white mb-4">
           <h3 className="text-xl font-bold">Spine Assistant</h3>
         </div>
 
