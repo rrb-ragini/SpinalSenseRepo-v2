@@ -53,7 +53,6 @@ export default function UploadPanel({ onFiles, files = [], onAnalysis }) {
         return;
       }
 
-      // 🔥 send only parsed payload → ChatPanel needs this
       onAnalysis(payload);
 
     } catch (err) {
@@ -67,21 +66,27 @@ export default function UploadPanel({ onFiles, files = [], onAnalysis }) {
     <div>
       <UploadZone onFiles={onFiles} />
 
-      <button
-        onClick={analyze}
-        disabled={loading}
-        className="mt-4 bg-primary text-white px-5 py-2 rounded"
-      >
-        {loading ? "Analyzing..." : "Analyze X-rays"}
-      </button>
+      {/* ⭐ Centered Buttons Container */}
+      <div className="flex flex-col items-center mt-4">
+        <button
+          onClick={analyze}
+          disabled={loading}
+          className="bg-primary text-white px-5 py-2 rounded"
+        >
+          {loading ? "Analyzing..." : "Analyze X-rays"}
+        </button>
 
-      <a href="https://www.choa.org/blog/2018/august/~/media/407CB5DBD39947E9AE42FCB9E6FAC76B.ashx?h=421&w=276"
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-blue-600 underline mt-3 block text-sm">
-      Download sample X-ray (demo)
-      </a>
-      
+        <a
+          href="https://www.choa.org/blog/2018/august/~/media/407CB5DBD39947E9AE42FCB9E6FAC76B.ashx?h=421&w=276"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 underline mt-3 text-sm"
+        >
+          Download sample X-ray (demo)
+        </a>
+      </div>
+
+      {/* Existing File Preview Section */}
       <div className="mt-4 space-y-3">
         {files.map((file, i) => (
           <div key={i} className="flex gap-3 p-3 border rounded bg-white">
