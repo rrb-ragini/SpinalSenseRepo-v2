@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { buildSystemPrompt } from "../../lib/prompts";
-import { saveMemory, fetchMemories } from "../../lib/pinecone";
+import { fetchMemories } from "../../lib/pinecone";
 
 // Short-term memory fallback
 if (!globalThis.__SPINAL_MEMORY) {
@@ -14,26 +14,27 @@ export async function POST(req) {
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     // -------------------------------
-    // 1. FETCH RAG MEMORY
+    // 1. SEARCH PINECONE RAG KNOWLEDGE BASE
     // -------------------------------
-    let ragMemory = [];
-    if (conversationId && messages?.length > 0) {
+    let ragContext = [];
+    if (messages?.length > 0) {
       const lastUserMessage = messages[messages.length - 1]?.content || "";
-      ragMemory = await fetchMemories(conversationId, lastUserMessage);
+      // Search Pinecone for relevant knowledge (not conversation history)
+      ragContext = await fetchMemories(null, lastUserMessage);
     }
 
-    const memoryPrompt = ragMemory.length
-      ? `Relevant past context:\n${ragMemory.map((m) => "- " + m).join("\n")}`
-      : "No relevant past memory.";
+    const contextPrompt = ragContext.length
+      ? `Relevant knowledge from database:\n${ragContext.map((m) => "- " + m).join("\n")}`
+      : "";
 
     // -------------------------------
-    // 2. CALL OPENAI
+    // 2. CALL OPENAI WITH RAG CONTEXT
     // -------------------------------
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: buildSystemPrompt() },
-        { role: "system", content: memoryPrompt },
+        ...(contextPrompt ? [{ role: "system", content: contextPrompt }] : []),
         ...messages,
       ],
     });
@@ -41,21 +42,7 @@ export async function POST(req) {
     const output = completion.choices[0].message.content;
 
     // -------------------------------
-    // 3. STORE MEMORY (safe)
-    // -------------------------------
-    if (conversationId) {
-      try {
-        const lastUser = messages[messages.length - 1]?.content;
-        if (lastUser) await saveMemory(conversationId, "user", lastUser);
-
-        await saveMemory(conversationId, "assistant", output);
-      } catch (err) {
-        console.error("Memory saving failed:", err);
-      }
-    }
-
-    // -------------------------------
-    // 4. UPDATE SHORT-TERM MEMORY
+    // 3. UPDATE SHORT-TERM MEMORY (in-memory only, NOT Pinecone)
     // -------------------------------
     const mem = globalThis.__SPINAL_MEMORY;
     if (conversationId && saveHistory) {
@@ -66,7 +53,7 @@ export async function POST(req) {
 
     return Response.json({ message: output });
   } catch (err) {
-    console.error("CHAT ERROR:", err);
-    return Response.json({ error: err.message }, { status: 500 });
+    console.error("CHAT ERROR DETAILS:", err);
+    return Response.json({ error: err.message, stack: err.stack }, { status: 500 });
   }
 }

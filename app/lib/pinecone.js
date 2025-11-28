@@ -4,32 +4,65 @@ import OpenAI from "openai";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // 🔥 Pinecone client
-const pc = new Pinecone({
-  apiKey: process.env.PINECONE_API_KEY,
-});
+let pc, index;
 
-// 🔥 Serverless index (must pass HOST parameter)
-const index = pc.index(
-  process.env.PINECONE_INDEX,
-  process.env.PINECONE_HOST
-);
+const initPinecone = () => {
+  try {
+    if (!process.env.PINECONE_API_KEY) {
+      console.error("❌ MISSING PINECONE_API_KEY");
+      return;
+    }
+    if (!process.env.PINECONE_INDEX) {
+      console.error("❌ MISSING PINECONE_INDEX");
+      return;
+    }
+    if (!process.env.PINECONE_HOST) {
+      console.error("❌ MISSING PINECONE_HOST");
+      return;
+    }
+
+    pc = new Pinecone({
+      apiKey: process.env.PINECONE_API_KEY,
+    });
+
+    // 🔥 Serverless index (must pass HOST parameter)
+    index = pc.index(
+      process.env.PINECONE_INDEX,
+      process.env.PINECONE_HOST
+    );
+    console.log("✅ Pinecone initialized for index:", process.env.PINECONE_INDEX);
+  } catch (error) {
+    console.error("PINECONE INIT ERROR:", error);
+  }
+};
+
+initPinecone();
 
 // -------------------------------
-// EMBED FUNCTION (1536 dims)
+// EMBED FUNCTION (1024 dims to match Pinecone index)
 // -------------------------------
 export async function embed(text) {
-  const response = await openai.embeddings.create({
-    model: "text-embedding-3-small", // ALWAYS 1536 dimension
-    input: text,
-  });
-
-  return response.data[0].embedding;
+  try {
+    const response = await openai.embeddings.create({
+      model: "text-embedding-3-small",
+      input: text,
+      dimensions: 1024, // Match Pinecone index dimension
+    });
+    return response.data[0].embedding;
+  } catch (err) {
+    console.error("EMBED ERROR:", err);
+    throw err;
+  }
 }
 
 // -------------------------------
-// SAVE MEMORY (safe)
+// SAVE MEMORY (safe) - NOT USED FOR CHAT HISTORY
 // -------------------------------
 export async function saveMemory(conversationId, role, content) {
+  if (!index) {
+    console.warn("⚠️ Pinecone index not initialized. Skipping saveMemory.");
+    return;
+  }
   try {
     const vector = await embed(content);
 
@@ -50,9 +83,13 @@ export async function saveMemory(conversationId, role, content) {
 }
 
 // -------------------------------
-// FETCH MEMORY (safe)
+// FETCH MEMORY - RAG KNOWLEDGE BASE SEARCH
 // -------------------------------
 export async function fetchMemories(conversationId, query) {
+  if (!index) {
+    console.warn("⚠️ Pinecone index not initialized. Skipping fetchMemories.");
+    return [];
+  }
   try {
     const queryVector = await embed(query);
 
@@ -60,7 +97,7 @@ export async function fetchMemories(conversationId, query) {
       topK: 6,
       vector: queryVector,
       includeMetadata: true,
-      filter: { conversationId },
+      // No filter - search all documents in knowledge base
     });
 
     return results.matches.map((m) => m.metadata.content);
