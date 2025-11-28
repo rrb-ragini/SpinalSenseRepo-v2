@@ -11,6 +11,11 @@ export default function Home() {
   // ⭐ REQUIRED FOR CHAT MEMORY
   const [history, setHistory] = useState([]);
 
+  const handleDeleteFile = (index) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setAnalysis(null); // Reset analysis when file is deleted
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-[420px_1fr] gap-6">
       <div className="card p-6 flex flex-col items-center justify-center">
@@ -19,14 +24,11 @@ export default function Home() {
           onFiles={(arr) => setFiles((prev) => [...prev, ...arr])}
           files={files}
           onAnalysis={(a) => setAnalysis(a)}
+          onDeleteFile={handleDeleteFile}
         />
       </div>
 
       <div>
-        <div className="card p-6 bg-gradient-to-r from-blue-400 to-blue-600 text-white mb-4">
-          <h3 className="text-xl font-bold">Spine Assistant</h3>
-        </div>
-
         {/* ⭐ ChatPanel must receive BOTH props */}
         <ChatPanel
           analysis={analysis}
