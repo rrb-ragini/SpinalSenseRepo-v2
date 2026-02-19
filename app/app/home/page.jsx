@@ -45,7 +45,7 @@ export default function Home() {
 
         {/* Middle: Analysis Results & Assistant */}
         <section className="flex flex-col gap-6">
-          <div className="glass-card p-0 rounded-[2rem] overflow-hidden border-none shadow-xl shadow-slate-200/50 min-h-[600px] flex flex-col">
+          <div className="glass-card p-0 rounded-[2rem] overflow-hidden border-none shadow-xl shadow-slate-200/50 h-[750px] flex flex-col">
             <ChatPanel
               analysis={analysis}
               history={history}
